@@ -1,26 +1,44 @@
 import {
   Alert,
-  Text,
   FlatList,
   TouchableOpacity,
   Button,
   View,
   Dimensions,
   ActivityIndicator,
-  Image,
 } from "react-native";
+import {
+  Text,
+  Pressable,
+  Box,
+  Image,
+  Heading,
+  VStack,
+  HStack,
+  Stack,
+  Divider,
+} from "native-base";
 import React, { useEffect, useLayoutEffect } from "react";
 import { useSelector } from "react-redux";
 import { selectUserById } from "../../features/users/usersSlice";
 import { RouteProp, useRoute } from "@react-navigation/native";
-import { useGetPostsByUserIdQuery } from "../../features/posts/postsSlice";
-import { HomeStackParamList } from "../../../types/navigationTypes";
+import {
+  useAddReactionMutation,
+  useGetPostsByUserIdQuery,
+} from "../../features/posts/postsSlice";
+import { HomeStackParamList } from "../../types/navigationTypes";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
 type UserPageRouteProp = RouteProp<HomeStackParamList, "SingleUser">;
+const reactionEmoji = {
+  thumbsUp: "👍",
+  wow: "😮",
+  heart: "❤️",
+  rocket: "🚀",
+};
 const UserPage: React.FC<{}> = () => {
   const {
-    params: { userId },
+    params: { userId, userName },
   } = useRoute<UserPageRouteProp>();
   const navigation = useNavigation();
   const {
@@ -29,13 +47,9 @@ const UserPage: React.FC<{}> = () => {
     isSuccess,
     isError,
     error,
-    refetch,
   } = useGetPostsByUserIdQuery(userId);
-  useLayoutEffect(() => {
-    console.log("calisti ?? ")
-    refetch();
-  }, []);
 
+  const [addReaction] = useAddReactionMutation();
   if (isLoading) {
     return (
       <View style={{ flex: 1 }}>
@@ -49,47 +63,79 @@ const UserPage: React.FC<{}> = () => {
   if (isError) {
     return <Text>Error</Text>;
   }
-
-  return (
-    <SafeAreaView style={{ padding: 16 }}>
-      <View
-        style={{
-          flexDirection: "row",
-          justifyContent: "space-between",
-          width: Dimensions.get("window").width / 2,
+  const postCard = ({ item }) => {
+    return (
+      <Pressable
+        onPress={() => {
+         navigation.navigate("SinglePost", { post: item })
         }}
       >
-        <Button title="<--" onPress={() => navigation.goBack()} color="grey" />
+        {({ isHovered, isFocused, isPressed }) => (
+          <Box
+            mb={7}
+            bg={isPressed ? "#ededed" : "white"}
+            p="7"
+            rounded="lg"
+            style={{ transform: [{ scale: isPressed ? 0.99 : 1 }] }}
+          >
+            <VStack space="5" alignItems={"center"}>
+              <Heading textAlign={"center"} size="md">
+                {item.title}
+              </Heading>
+              <Image
+                resizeMode="cover"
+                width={Dimensions.get("window").width * 0.8}
+                height={150}
+                source={{
+                  uri: item.photo,
+                }}
+                alt="image"
+              />
+              <Text>{item.body}</Text>
+            </VStack>
+            <Divider mt={4} mb={4} />
+            <ReactionButtons item={item} />
+          </Box>
+        )}
+      </Pressable>
+    );
+  };
 
-        <Text style={{ fontSize: 20, fontWeight: "bold", textAlign: "center" }}>
-          User's posts
-        </Text>
-      </View>
+  const ReactionButtons = ({ item }) => {
+    const reactionButtons = Object.entries(reactionEmoji).map(
+      ([name, emoji]) => {
+        return (
+          <Pressable
+            style={{ marginRight: 10 }}
+            key={name}
+            onPress={() => {
+              const newValue = item.reactions[name] + 1;
+              addReaction({
+                ...item,
+                reactions: { ...item.reactions, [name]: newValue },
+              });
+            }}
+          >
+           {({ isHovered, isFocused, isPressed }) => (
+          <Box style={{transform:[{scale:isPressed ? .9 : 1}]}}>
+               <Text>
+             {emoji} {item.reactions[name]}
+           </Text>
+          </Box>
+           )}
+          </Pressable>
+        );
+      }
+    );
+
+    return <HStack space={2} alignSelf={"center"} >{reactionButtons}</HStack>;
+  };
+  return (
+    <SafeAreaView style={{ padding: 16 }}>
       <FlatList
         data={posts ? Object.values(posts.entities ?? []) : []}
         keyExtractor={(item) => item.id}
-        renderItem={({ item }) => {
-          return (
-            <TouchableOpacity
-              onPress={() => navigation.navigate("SinglePost", { post: item })}
-              style={{
-                backgroundColor: "#aaaa",
-                padding: 20,
-                margin: 10,
-                borderRadius: 15,
-              }}
-            >
-              <Image
-                source={{ uri: item.photo }}
-                style={{ height: 200, width: window.innerWidth, padding: 15 }}
-              />
-              <Text style={{ fontSize: 16, fontWeight: "bold" }}>
-                {item.title}
-              </Text>
-              <Text>{item.body}</Text>
-            </TouchableOpacity>
-          );
-        }}
+        renderItem={postCard}
       />
     </SafeAreaView>
   );

@@ -5,7 +5,7 @@ import { NativeStackNavigationProp } from "@react-navigation/native-stack";
 import {
   AllScreenParamList,
   AuthStackParamList,
-} from "../../../types/navigationTypes";
+} from "../../types/navigationTypes";
 // type RegisterRouteProp = RouteProp<AuthStackParamList, "Register">;
 const Register = () => {
   //   const route = useRoute<RegisterRouteProp>();
