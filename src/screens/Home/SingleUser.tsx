@@ -23,6 +23,8 @@ import { useSelector } from "react-redux";
 import { selectUserById } from "../../features/users/usersSlice";
 import { RouteProp, useRoute } from "@react-navigation/native";
 import {
+  selectAllPosts,
+  selectPostById,
   useAddReactionMutation,
   useGetPostsByUserIdQuery,
 } from "../../features/posts/postsSlice";
@@ -41,13 +43,15 @@ const UserPage: React.FC<{}> = () => {
     params: { userId, userName },
   } = useRoute<UserPageRouteProp>();
   const navigation = useNavigation();
-  const {
-    data: posts,
-    isLoading,
-    isSuccess,
-    isError,
-    error,
-  } = useGetPostsByUserIdQuery(userId);
+
+  const posts = useSelector((state: any) => selectPostById(state, userId));
+  console.log("posts:", posts);
+  useEffect(() => {
+    alert("Postlar değişti ????????????");
+  }, [posts]);
+  console.log("Query loading oldu data çekildi ama state ");
+  const { isLoading, isSuccess, isError, error } =
+    useGetPostsByUserIdQuery(userId);
 
   const [addReaction] = useAddReactionMutation();
   if (isLoading) {
@@ -67,7 +71,7 @@ const UserPage: React.FC<{}> = () => {
     return (
       <Pressable
         onPress={() => {
-         navigation.navigate("SinglePost", { post: item })
+          navigation.navigate("SinglePost", { post: item });
         }}
       >
         {({ isHovered, isFocused, isPressed }) => (
@@ -110,30 +114,35 @@ const UserPage: React.FC<{}> = () => {
             key={name}
             onPress={() => {
               const newValue = item.reactions[name] + 1;
+
               addReaction({
                 ...item,
                 reactions: { ...item.reactions, [name]: newValue },
               });
             }}
           >
-           {({ isHovered, isFocused, isPressed }) => (
-          <Box style={{transform:[{scale:isPressed ? .9 : 1}]}}>
-               <Text>
-             {emoji} {item.reactions[name]}
-           </Text>
-          </Box>
-           )}
+            {({ isHovered, isFocused, isPressed }) => (
+              <Box style={{ transform: [{ scale: isPressed ? 0.9 : 1 }] }}>
+                <Text>
+                  {emoji} {item.reactions[name]}
+                </Text>
+              </Box>
+            )}
           </Pressable>
         );
       }
     );
 
-    return <HStack space={2} alignSelf={"center"} >{reactionButtons}</HStack>;
+    return (
+      <HStack space={2} alignSelf={"center"}>
+        {reactionButtons}
+      </HStack>
+    );
   };
   return (
     <SafeAreaView style={{ padding: 16 }}>
       <FlatList
-        data={posts ? Object.values(posts.entities ?? []) : []}
+        data={[posts] ?? []}
         keyExtractor={(item) => item.id}
         renderItem={postCard}
       />

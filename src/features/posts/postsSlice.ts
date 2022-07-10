@@ -1,4 +1,5 @@
 import { createSelector, createEntityAdapter } from "@reduxjs/toolkit";
+import { store } from "../../../store";
 import { apiSlice } from "../api/apiSlice";
 
 const postsAdapter = createEntityAdapter();
@@ -14,21 +15,18 @@ export const extendedApiSlice = apiSlice.injectEndpoints({
       },
       providesTags: (result: any, error, arg) => [
         { type: "Post", id: "LIST" },
-        ...result.ids.map((id: string) => ({ type: "Post", id })),
+        ...result.ids.map((id: any) => ({ type: "Post", id })),
       ],
     }),
     getPostsByUserId: builder.query({
       query: (id) => `/posts/?userId=${id}`,
-      transformResponse: (responseData: any, _, arg) => {
-        const actualPost = responseData.filter(
-          (post: any) => post.userId === Number(arg)
-        );
+      transformResponse: (responseData: any, _, arg) =>
+        postsAdapter.setAll(initialState, responseData),
 
-        return postsAdapter.setAll(initialState, actualPost);
+      providesTags: (result: any) => {
+        alert(JSON.stringify(result.entities));
+        return [...result.ids.map((id: string) => ({ type: "Post", id }))];
       },
-      providesTags: (result: any) => [
-        ...result.ids.map((id: string) => ({ type: "Post", id })),
-      ],
     }),
     addNewPost: builder.mutation({
       query: (initialPost) => ({
@@ -63,38 +61,36 @@ export const extendedApiSlice = apiSlice.injectEndpoints({
       },
     }),
     addReaction: builder.mutation({
-      query: (post) => ({
-        url: `posts/${post.id}`,
-        method: "PUT",
+      query: ({ id, reactions }) => ({
+        url: `posts/${id}`,
+        method: "PATCH",
         // In a real app, we'd probably need to base this on user ID somehow
         // so that a user can't do the same reaction more than once
-        body: { reactions: post.reactions },
+        body: { reactions },
       }),
-      invalidatesTags: (result, error, arg) => [{ type: "Post", id: arg.id }],
-      // async onQueryStarted(
-      //   post,
-      //   { dispatch, queryFulfilled }
-      // ) {
-      //   // `updateQueryData` requires the endpoint name and cache key arguments,
-      //   // so it knows which piece of cache state to update
-      //   const patchResult = dispatch(
-      //     extendedApiSlice.util.updateQueryData(
-      //       "getPosts",
-      //       undefined,
-      //       (draft) => {
-      //         // The `draft` is Immer-wrapped and can be "mutated" like in createSlice
-      //         const selectedPost = draft.entities[post.id];
-      //         console.log("selected post ??", selectedPost)
-      //         if (selectedPost) selectedPost.reactions = post.reactions;
-      //       }
-      //     )
-      //   );
-      //   try {
-      //     await queryFulfilled;
-      //   } catch {
-      //     patchResult.undo();
-      //   }
-      // },
+      async onQueryStarted({ id, reactions }, { dispatch, queryFulfilled }) {
+        // `updateQueryData` requires the endpoint name and cache key arguments,
+        // so it knows which piece of cache state to update
+        const patchResult = dispatch(
+          extendedApiSlice.util.updateQueryData(
+            "getPosts",
+            undefined,
+            (draft) => {
+              const eski = draft.entities[id].reactions;
+              // The `draft` is Immer-wrapped and can be "mutated" like in createSlice
+              const post = draft.entities[id];
+              if (post) {
+                post.reactions = reactions;
+              }
+            }
+          )
+        );
+        try {
+          await queryFulfilled;
+        } catch {
+          patchResult.undo();
+        }
+      },
     }),
   }),
 });
