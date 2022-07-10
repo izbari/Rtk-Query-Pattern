@@ -6,7 +6,7 @@ export type AuthStackParamList = {
 export type HomeStackParamList = {
   UserList: undefined;
   SingleUser: { userId: string, userName: string };
-  SinglePost: { post: object };
+  SinglePost: { postId: string };
 };
 export type AllScreenParamList = {
   userId: string;

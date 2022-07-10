@@ -1,62 +1,33 @@
-import {
-  Alert,
-  FlatList,
-  TouchableOpacity,
-  Button,
-  View,
-  Dimensions,
-  ActivityIndicator,
-} from "react-native";
-import {
-  Text,
-  Pressable,
-  Box,
-  Image,
-  Heading,
-  VStack,
-  HStack,
-  Stack,
-  Divider,
-} from "native-base";
-import React, { useEffect, useLayoutEffect } from "react";
+import { FlatList, ActivityIndicator, Text, View } from "react-native";
+
+import React from "react";
 import { useSelector } from "react-redux";
-import { selectUserById } from "../../features/users/usersSlice";
 import { RouteProp, useRoute } from "@react-navigation/native";
 import {
-  selectAllPosts,
-  selectPostById,
   useAddReactionMutation,
   useGetPostsByUserIdQuery,
 } from "../../features/posts/postsSlice";
 import { HomeStackParamList } from "../../types/navigationTypes";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { useNavigation } from "@react-navigation/native";
+import PostCard from "../../components/PostCard";
+import { Post } from "../../types/Models";
 type UserPageRouteProp = RouteProp<HomeStackParamList, "SingleUser">;
-const reactionEmoji = {
-  thumbsUp: "👍",
-  wow: "😮",
-  heart: "❤️",
-  rocket: "🚀",
-};
+
 const UserPage: React.FC<{}> = () => {
   const {
-    params: { userId, userName },
+    params: { userId },
   } = useRoute<UserPageRouteProp>();
-  const navigation = useNavigation();
-
-  const posts = useSelector((state: any) => selectPostById(state, userId));
-  console.log("posts:", posts);
-  useEffect(() => {
-    alert("Postlar değişti ????????????");
-  }, [posts]);
-  console.log("Query loading oldu data çekildi ama state ");
-  const { isLoading, isSuccess, isError, error } =
+  console.log("user ıd", userId);
+  // const posts : Post[] = useSelector((state: any) => select(state));
+  // const filteredPosts=  posts.filter(post => post.userId == userId);
+  // console.log(posts);
+  const { data, isLoading, isSuccess, isError, error } =
     useGetPostsByUserIdQuery(userId);
-
-  const [addReaction] = useAddReactionMutation();
+  console.log("userposts", data ? Object.values(data.entities ?? []) : []);
   if (isLoading) {
     return (
-      <View style={{ flex: 1 }}>
+      <View style={{ flex: 1, alignItems: "center", justifyContent: "center" }}>
         <ActivityIndicator size="large" color="#0000ff" />
         <Text style={{ fontWeight: "bold", fontSize: 24 }}>
           Posts fetching...
@@ -67,84 +38,17 @@ const UserPage: React.FC<{}> = () => {
   if (isError) {
     return <Text>Error</Text>;
   }
-  const postCard = ({ item }) => {
-    return (
-      <Pressable
-        onPress={() => {
-          navigation.navigate("SinglePost", { post: item });
-        }}
-      >
-        {({ isHovered, isFocused, isPressed }) => (
-          <Box
-            mb={7}
-            bg={isPressed ? "#ededed" : "white"}
-            p="7"
-            rounded="lg"
-            style={{ transform: [{ scale: isPressed ? 0.99 : 1 }] }}
-          >
-            <VStack space="5" alignItems={"center"}>
-              <Heading textAlign={"center"} size="md">
-                {item.title}
-              </Heading>
-              <Image
-                resizeMode="cover"
-                width={Dimensions.get("window").width * 0.8}
-                height={150}
-                source={{
-                  uri: item.photo,
-                }}
-                alt="image"
-              />
-              <Text>{item.body}</Text>
-            </VStack>
-            <Divider mt={4} mb={4} />
-            <ReactionButtons item={item} />
-          </Box>
-        )}
-      </Pressable>
-    );
-  };
 
-  const ReactionButtons = ({ item }) => {
-    const reactionButtons = Object.entries(reactionEmoji).map(
-      ([name, emoji]) => {
-        return (
-          <Pressable
-            style={{ marginRight: 10 }}
-            key={name}
-            onPress={() => {
-              const newValue = item.reactions[name] + 1;
-
-              addReaction({
-                ...item,
-                reactions: { ...item.reactions, [name]: newValue },
-              });
-            }}
-          >
-            {({ isHovered, isFocused, isPressed }) => (
-              <Box style={{ transform: [{ scale: isPressed ? 0.9 : 1 }] }}>
-                <Text>
-                  {emoji} {item.reactions[name]}
-                </Text>
-              </Box>
-            )}
-          </Pressable>
-        );
-      }
-    );
-
-    return (
-      <HStack space={2} alignSelf={"center"}>
-        {reactionButtons}
-      </HStack>
-    );
-  };
   return (
     <SafeAreaView style={{ padding: 16 }}>
       <FlatList
-        data={[posts] ?? []}
+        data={
+          data
+            ? Object.values(data.entities ?? []).sort((a,b)=> new Date(b.createdAt) - new Date(a.createdAt))
+            : []
+        }
         keyExtractor={(item) => item.id}
-        renderItem={postCard}
+        renderItem={({ item }) => <PostCard postId={item.id} />}
       />
     </SafeAreaView>
   );

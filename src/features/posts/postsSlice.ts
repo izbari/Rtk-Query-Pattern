@@ -20,11 +20,13 @@ export const extendedApiSlice = apiSlice.injectEndpoints({
     }),
     getPostsByUserId: builder.query({
       query: (id) => `/posts/?userId=${id}`,
-      transformResponse: (responseData: any, _, arg) =>
-        postsAdapter.setAll(initialState, responseData),
-
+      transformResponse: (responseData: any, _, arg) => {
+        console.log("res", responseData);
+        return postsAdapter.setAll(initialState, responseData);
+       
+      },
       providesTags: (result: any) => {
-        alert(JSON.stringify(result.entities));
+        console.log("provies tag kısmı", result)
         return [...result.ids.map((id: string) => ({ type: "Post", id }))];
       },
     }),
@@ -37,7 +39,8 @@ export const extendedApiSlice = apiSlice.injectEndpoints({
           userId: Number(initialPost.userId),
         },
       }),
-      invalidatesTags: [{ type: "Post", id: "LIST" }],
+      invalidatesTags: (result, error, arg) => [{ type: "Post"}],
+
     }),
     updatePost: builder.mutation({
       query: (initialPost) => ({
@@ -76,8 +79,6 @@ export const extendedApiSlice = apiSlice.injectEndpoints({
             "getPosts",
             undefined,
             (draft) => {
-              const eski = draft.entities[id].reactions;
-              // The `draft` is Immer-wrapped and can be "mutated" like in createSlice
               const post = draft.entities[id];
               if (post) {
                 post.reactions = reactions;
@@ -108,6 +109,7 @@ export const {
 export const selectPostsResult = extendedApiSlice.endpoints.getPosts.select();
 
 // Creates memoized selector
+
 const selectPostsData = createSelector(
   selectPostsResult,
   (postsResult) => postsResult.data // normalized state object with ids & entities
@@ -122,3 +124,4 @@ export const {
 } = postsAdapter.getSelectors(
   (state) => selectPostsData(state) ?? initialState
 );
+

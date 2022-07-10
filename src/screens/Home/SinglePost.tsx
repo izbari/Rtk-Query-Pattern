@@ -11,6 +11,7 @@ import { RouteProp, useNavigation, useRoute } from "@react-navigation/native";
 import { HomeStackParamList } from "../../types/navigationTypes";
 import { SafeAreaView } from "react-native-safe-area-context";
 import {
+  selectPostById,
   useAddNewPostMutation,
   useAddReactionMutation,
   useDeletePostMutation,
@@ -37,6 +38,7 @@ import {
   Center,
   Spinner,
 } from "native-base";
+import { useSelector } from "react-redux";
 interface post {
   title: string;
   body: string;
@@ -53,8 +55,10 @@ const reactionEmoji = {
 type SinglePostRouteType = RouteProp<HomeStackParamList, "SinglePost">;
 const SinglePost: FC = () => {
   const {
-    params: { post },
+    params: { postId },
   } = useRoute<SinglePostRouteType>();
+  const post = useSelector(state=> selectPostById(state,postId))
+  console.log(post)
   const [addReaction] = useAddReactionMutation();
   const navigation = useNavigation();
   const [updatePost, { isLoading: isLoadingUpdate, isError: isErrorUpdate }] =
@@ -260,37 +264,7 @@ const SinglePost: FC = () => {
             >
               Delete
             </Button>
-            <Button
-              colorScheme="blue"
-              onPress={async () => {
-                await addNewPost({
-                  createdAt: "2023-07-07T03:11:45.154Z",
-                  title: "Changable Title",
-                  photo: "http://loremflickr.com/640/480/fashion",
-                  userId: 1,
-                  body: "Fugit incidunt consequatur. Minima ut consequatur consectetur qui quis excepturi inventore soluta enim. Sit aut enim in dolorem et impedit aut expedita et. Accusamus consequatur et est.\nQui quaerat quos. Laboriosam facilis nisi animi molestiae qui illo ipsam quaerat. Nulla veritatis sed. Dolores ut vero placeat fuga numquam doloremque accusantium. Dicta facilis mollitia. Praesentium molestiae occaecati laborum debitis tempore dolor.\nA dolorem porro et est voluptatem consequatur inventore est. Deleniti praesentium magni. Voluptatem nostrum vel ut autem maiores. Aut reprehenderit dolor iste.",
-                  reactions: {
-                    thumbsUp: 15101,
-                    wow: 81100,
-                    heart: 88102,
-                    rocket: 23405,
-                    coffee: 74304,
-                  },
-                  id: "105",
-                  date: "2022-07-09T23:29:06.825Z",
-                });
-              }}
-              leftIcon={
-                <Icon
-                  name="add-outline"
-                  type="Ionicons"
-                  color="white"
-                  size={16}
-                />
-              }
-            >
-              Add new post
-            </Button>
+           
           </VStack>
         </KeyboardAvoidingView>
       </ScrollView>
